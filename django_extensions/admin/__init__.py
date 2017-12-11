@@ -51,17 +51,24 @@ class ForeignKeyAutocompleteAdminMixin(object):
     autocomplete_limit = getattr(settings, 'FOREIGNKEY_AUTOCOMPLETE_LIMIT', None)
 
     def get_urls(self):
-        from django.conf.urls import url
-
+        # from django.conf.urls import url
+        #
         def wrap(view):
             def wrapper(*args, **kwargs):
                 return self.admin_site.admin_view(view)(*args, **kwargs)
             return update_wrapper(wrapper, view)
+        #
+        # return [
+        #     url(r'foreignkey_autocomplete/$', wrap(self.foreignkey_autocomplete),
+        #         name='%s_%s_autocomplete' % (self.model._meta.app_label, self.model._meta.model_name))
+        # ] + super(ForeignKeyAutocompleteAdminMixin, self).get_urls()
 
-        return [
-            url(r'foreignkey_autocomplete/$', wrap(self.foreignkey_autocomplete),
-                name='%s_%s_autocomplete' % (self.model._meta.app_label, self.model._meta.model_name))
-        ] + super(ForeignKeyAutocompleteAdminMixin, self).get_urls()
+        from django.urls import path
+        urls = super().get_urls()
+        my_urls = [
+            path('foreignkey_autocomplete/', wrap(self.foreignkey_autocomplete), name='%s_%s_autocomplete' % (self.model._meta.app_label, self.model._meta.model_name))
+        ]
+        return my_urls + urls
 
     def foreignkey_autocomplete(self, request):
         """
@@ -146,11 +153,11 @@ class ForeignKeyAutocompleteAdminMixin(object):
         specified in the related_search_fields class attribute.
         """
         if isinstance(db_field, models.ForeignKey) and db_field.name in self.related_search_fields:
-            model_name = db_field.rel.to._meta.object_name
+            model_name = db_field.target_field.model._meta.object_name
             help_text = self.get_help_text(db_field.name, model_name)
             if kwargs.get('help_text'):
                 help_text = six.u('%s %s' % (kwargs['help_text'], help_text))
-            kwargs['widget'] = ForeignKeySearchInput(db_field.rel, self.related_search_fields[db_field.name])
+            kwargs['widget'] = ForeignKeySearchInput(db_field.remote_field, self.related_search_fields[db_field.name])
             kwargs['help_text'] = help_text
         return super(ForeignKeyAutocompleteAdminMixin, self).formfield_for_dbfield(db_field, **kwargs)
 
