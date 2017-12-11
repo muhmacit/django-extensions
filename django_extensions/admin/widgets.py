@@ -35,7 +35,7 @@ class ForeignKeySearchInput(ForeignKeyRawIdWidget):
 
     def label_for_value(self, value):
         key = self.rel.get_related_field().name
-        obj = self.rel.target_field.model._default_manager.get(**{key: value})
+        obj = self.rel.model._default_manager.get(**{key: value})
 
         return Truncator(obj).words(14, truncate='...')
 
